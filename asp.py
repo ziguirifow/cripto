@@ -1,113 +1,171 @@
-1. # Caesar Cipher
+"""Pacman, classic arcade game.
 
- 2.
+Exercises
 
- 3. MAX_KEY_SIZE = 26
+1. Change the board.
+2. Change the number of ghosts.
+3. Change where pacman starts.
+4. Make the ghosts faster/slower.
+5. Make the ghosts smarter.
 
- 4.
+"""
 
- 5. def getMode():
+from random import choice
+from turtle import *
+from freegames import floor, vector
 
- 6.     while True:
+state = {'score': 0}
+path = Turtle(visible=False)
+writer = Turtle(visible=False)
+aim = vector(5, 0)
+pacman = vector(-40, -80)
+ghosts = [
+    [vector(-180, 160), vector(5, 0)],
+    [vector(-180, -160), vector(0, 5)],
+    [vector(100, 160), vector(0, -5)],
+    [vector(100, -160), vector(-5, 0)],
+]
+tiles = [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0,
+    0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0,
+    0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+    0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+    0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0,
+    0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0,
+    0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+    0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0,
+    0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0,
+    0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+    0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+]
 
- 7.         print('Do you wish to encrypt or decrypt a message?')
+def square(x, y):
+    "Draw square using path at (x, y)."
+    path.up()
+    path.goto(x, y)
+    path.down()
+    path.begin_fill()
 
- 8.         mode = input().lower()
+    for count in range(4):
+        path.forward(20)
+        path.left(90)
 
- 9.         if mode in 'encrypt e decrypt d'.split():
+    path.end_fill()
 
-10.             return mode
+def offset(point):
+    "Return offset of point in tiles."
+    x = (floor(point.x, 20) + 200) / 20
+    y = (180 - floor(point.y, 20)) / 20
+    index = int(x + y * 20)
+    return index
 
-11.         else:
+def valid(point):
+    "Return True if point is valid in tiles."
+    index = offset(point)
 
-12.             print('Enter either "encrypt" or "e" or "decrypt" or "d".')
+    if tiles[index] == 0:
+        return False
 
-13.
+    index = offset(point + 19)
 
-14. def getMessage():
+    if tiles[index] == 0:
+        return False
 
-15.     print('Enter your message:')
+    return point.x % 20 == 0 or point.y % 20 == 0
 
-16.     return input()
+def world():
+    "Draw world using path."
+    bgcolor('black')
+    path.color('blue')
 
-17.
+    for index in range(len(tiles)):
+        tile = tiles[index]
 
-18. def getKey():
+        if tile > 0:
+            x = (index % 20) * 20 - 200
+            y = 180 - (index // 20) * 20
+            square(x, y)
 
-19.     key = 0
+            if tile == 1:
+                path.up()
+                path.goto(x + 10, y + 10)
+                path.dot(2, 'white')
 
-20.     while True:
+def move():
+    "Move pacman and all ghosts."
+    writer.undo()
+    writer.write(state['score'])
 
-21.         print('Enter the key number (1-%s)' % (MAX_KEY_SIZE))
+    clear()
 
-22.         key = int(input())
+    if valid(pacman + aim):
+        pacman.move(aim)
 
-23.         if (key >= 1 and key <= MAX_KEY_SIZE):
+    index = offset(pacman)
 
-24.             return key
+    if tiles[index] == 1:
+        tiles[index] = 2
+        state['score'] += 1
+        x = (index % 20) * 20 - 200
+        y = 180 - (index // 20) * 20
+        square(x, y)
 
-25.
+    up()
+    goto(pacman.x + 10, pacman.y + 10)
+    dot(20, 'yellow')
 
-26. def getTranslatedMessage(mode, message, key):
+    for point, course in ghosts:
+        if valid(point + course):
+            point.move(course)
+        else:
+            options = [
+                vector(5, 0),
+                vector(-5, 0),
+                vector(0, 5),
+                vector(0, -5),
+            ]
+            plan = choice(options)
+            course.x = plan.x
+            course.y = plan.y
 
-27.     if mode[0] == 'd':
+        up()
+        goto(point.x + 10, point.y + 10)
+        dot(20, 'red')
 
-28.         key = -key
+    update()
 
-29.     translated = ''
+    for point, course in ghosts:
+        if abs(pacman - point) < 20:
+            return
 
-30.
+    ontimer(move, 100)
 
-31.     for symbol in message:
+def change(x, y):
+    "Change pacman aim if valid."
+    if valid(pacman + vector(x, y)):
+        aim.x = x
+        aim.y = y
 
-32.         if symbol.isalpha():
-
-33.             num = ord(symbol)
-
-34.             num += key
-
-35.
-
-36.             if symbol.isupper():
-
-37.                 if num > ord('Z'):
-
-38.                     num -= 26
-
-39.                 elif num < ord('A'):
-
-40.                     num += 26
-
-41.             elif symbol.islower():
-
-42.                 if num > ord('z'):
-
-43.                     num -= 26
-
-44.                 elif num < ord('a'):
-
-45.                     num += 26
-
-46.
-
-47.             translated += chr(num)
-
-48.         else:
-
-49.             translated += symbol
-
-50.     return translated
-
-51.
-
-52. mode = getMode()
-
-53. message = getMessage()
-
-54. key = getKey()
-
-55.
-
-56. print('Your translated text is:')
-
-57. print(getTranslatedMessage(mode, message, key))
+setup(420, 420, 370, 0)
+hideturtle()
+tracer(False)
+writer.goto(160, 160)
+writer.color('white')
+writer.write(state['score'])
+listen()
+onkey(lambda: change(5, 0), 'Right')
+onkey(lambda: change(-5, 0), 'Left')
+onkey(lambda: change(0, 5), 'Up')
+onkey(lambda: change(0, -5), 'Down')
+world()
+move()
+done()
